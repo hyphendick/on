@@ -1,0 +1,164 @@
+<style>
+/* float clearing for IE6 */
+* html .clearfix{
+  height: 1%;
+  overflow: visible;
+}
+
+/* float clearing for IE7 */
+*+html .clearfix{
+  min-height: 1%;
+}
+
+/* float clearing for everyone else */
+.clearfix:after{
+  clear: both;
+  content: ".";
+  display: block;
+  height: 0;
+  visibility: hidden;
+  font-size: 0;
+}
+
+
+body {
+  overflow-x:hidden;
+  width:480px;  
+}
+
+h1 span {
+    display: block;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+.imageAction, .titleSynopsis {
+	float: left;
+}
+
+.movieResult {	
+	clear: both;
+	height: auto;
+	float: left;
+	margin: 0 0 30px 0;	
+	width: auto;
+}
+
+.movieResult img{
+	float: left;
+}
+.movieResult h3,.movieResult p {
+	margin: 0 0 0 10px;
+	width: 350px;
+}
+
+h3 a.netflixLink {
+	font-size: 15px;
+	font-weight: normal;
+}
+
+.notAvailable {
+	color: red;
+}
+.available {
+	color: green;
+}
+
+#loading h4 {	
+	margin-left: 15px;
+}
+#loading {
+	margin: 0 auto;
+	width: 100px;
+}
+
+</style>
+<script src="jq.js"></script>
+<script src="jquery.tmpl.min.js"></script>
+<script id="movieTemplate" type="text/html">
+    <div class="movieResult">
+		<div class="imageAction">
+			<img src="${BoxArt.LargeUrl}" />
+		</div>
+		<div class="titleSynopsis">
+			<h3>${Name} - <a class="netflixLink" href="javascript:void(0)" onclick="javascript:openTab('${TinyUrl}')">View on Netflix</a></h3>
+			<p>Instant - {{if Instant.Available}}<span class="available">Yes</span>{{else}}<span class="notAvailable">No</span>{{/if}} | DVD - {{if Dvd.Available}}<span class="available">Yes</span>{{else}}<span class="notAvailable">No</span>{{/if}} | Blu-Ray - {{if BluRay.Available}}<span class="available">Yes</span>{{else}}<span class="notAvailable">No</span>{{/if}}</p>
+			<p>
+			{{html ShortSynopsis}}
+			</p>
+		</div>
+    </div>
+</script>
+<script>
+
+
+	  
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-22635355-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = 'https://ssl.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+  
+  
+var allMovies;
+chrome.tabs.getSelected(null, function(tab) {
+  chrome.tabs.sendRequest(tab.id, {askForTitle: true},function(response){	
+		if(typeof response.title != "undefined" && response.title != null) {			
+			getResults(response.title);
+		}
+	});
+});
+
+function getResults(title) {
+console.log(title);
+	$.ajax({
+		url: 'http://odata.netflix.com/Catalog/Titles?' +
+				'$filter=substringof(\''+escape(title)+'\',Name)&$format=json',
+		success:showResults,
+		error:resultsError,
+		complete:function(xhr,text){console.log('complete')}
+	});
+}
+function resultsError(jqXHR, textStatus, errorThrown){
+ _gaq.push(['_trackEvent', 'Error results']);
+ try {console.log('error');console.log(errorThrown);console.log(textStatus);console.log(jqXHR);} catch(e){}
+ $("#loading").remove();
+ $('<h4 style="width:150px; margin: 0 auto;">An error occured while searching.</h4>').appendTo("#titles");
+}
+function showResults(movies) {
+	allMovies = movies.d.results;
+	$("#loading").remove();
+	if(allMovies.length >0 ) {
+		_gaq.push(['_trackEvent', 'Results Found']);
+		$( "#movieTemplate" ).tmpl(allMovies).appendTo( "#titles" );
+	} else {
+		noResults();
+	}
+	
+}
+
+function noResults() {
+	_gaq.push(['_trackEvent', 'No Results']);
+	$('<h4 style="width:150px; margin: 0 auto;">No Results Found.</h4>').appendTo("#titles");
+}
+
+function openTab(url){
+	chrome.tabs.getSelected(null,function(tab){
+	console.log(tab);
+	chrome.tabs.create({index:tab.index+1,url: url,selected: true},function(t){console.log(t)});
+	});
+}
+</script>
+<body>
+	<h1>Results: <span>delivered by <a href="http://www.netflix.com">Netflix</a></span></h1>
+	<div id="titles" class="clearfix">
+		<div id="loading">
+			<h4>Searching</h4>
+			<img src="loading.gif"/>
+		</div>
+	</div>
+</body>

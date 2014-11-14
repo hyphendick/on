@@ -1,0 +1,23 @@
+{
+  "name": "ON",
+  "version": "1.0",
+  "description": "Finds movies from IMDb on Netflix",
+  "background_page": "background.html",
+  "page_action": {
+    "default_icon": "icon.png",
+    "popup": "popup.html"
+  },
+  "permissions": [	
+	"tabs",
+    "http://*.netflix.com/"	
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.imdb.com/*"],
+      "js": ["jq.js","getName.js"]
+    }
+  ],
+  "icons": {"48": "icon.png",
+			"128": "icon_128.png"}
+
+}
